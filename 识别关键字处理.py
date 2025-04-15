@@ -61,7 +61,7 @@ class HuiTuHandler:
 
     def start(self):
         """启动消息处理线程"""
-        print("启动灰兔消息处理器...")
+        print("启动消息处理器...")
         self.running = True
         self.condition_met = False
         for i in range(self.num_threads):
