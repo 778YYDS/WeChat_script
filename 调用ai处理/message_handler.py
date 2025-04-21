@@ -31,7 +31,7 @@ class MessageHandler:
         """调用API处理数学方程"""
         try:
             payload = {
-                "model": "Pro/Qwen/Qwen2.5-7B-Instruct",
+                "model": "Qwen/Qwen2.5-7B-Instruct",
                 "stream": False,
                 "max_tokens": 512,
                 "temperature": 0.7,
@@ -41,7 +41,7 @@ class MessageHandler:
                 "n": 1,
                 "messages": [
                     {
-                        "content": "求解数学方程并返回 ? 的值。例如： ？+3=7 ？+5=19 7+5=？ 7+？=26 请直接返回 ? 的值，不要多余的文字。",
+                        "content": "求解数学方程并返回 ? 的值。例如： ？+3=7 ？+5=19 7+5=？ 7+？=26 1+1=，请直接返回 ? 的值，不要多余的文字。如果包含英文字符请返回'1' ，例如：11+b=？",
                         "role": "system"
                     },
                     {
