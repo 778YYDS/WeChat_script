@@ -40,7 +40,7 @@ class HuiTuHandler:
                         is_valid_message = last_message is not None
                         contains_target_words = any(word in last_message for word in ['所有人'])
                         excluded_words = ['引用', '北极', '重复', '几', '是', '什么', '天', '人数', '接单', '挑', '发', '收', '码',
-                                      '支付宝', '挑', '转', '我', '君杨', '测', '不', '脚', '抢', '测', '别', '语音', '70', '80', '点赞', '+', '-']
+                                      '支付宝', '挑', '转', '我', '君杨', '测', '不', '脚', '抢', '测', '别', '语音', '70', '80', '点赞', '+', '-', '清图']
                         does_not_contain_quote = all(word not in last_message for word in excluded_words)
                         name = '发单客服' in sender
 
