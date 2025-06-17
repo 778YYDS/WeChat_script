@@ -1,6 +1,6 @@
 /******************************************
- * @name TestFlight 自动抓取 + 加入
- * @version 1.1.0
+ * @name TestFlight 自动抓取 + 加入（容错版）
+ * @version 1.1.1
  ******************************************/
 const $ = new Env("TestFlight 自动加入");
 $.isRequest = () => typeof $request !== "undefined";
@@ -27,19 +27,22 @@ function setStored(k, v) {
 }
 
 function saveAppId(appId) {
-  const key = getStored("appIds") || "";
-  const arr = key ? key.split(",") : [];
+  const raw = getStored("appIds") || "";
+  const arr = raw ? raw.split(",") : [];
   const entry = `${appId}#0`;
   if (!arr.includes(entry)) {
     arr.push(entry);
     setStored("appIds", arr.join(","));
-    $.msg($.name, "捕获 APP_ID", appId);
+    $.msg($.name, "捕获 APP_ID ✅", appId);
+  } else {
+    $.log(`应用ID: ${appId} 已存在，无需重复添加。`);
   }
 }
 
 if ($.isRequest()) {
   const { url, headers } = $request;
 
+  // 抓取 TestFlight 参数
   if (/\/v3\/accounts\/.*\/apps/.test(url)) {
     const h = {};
     Object.entries(headers).forEach(([k, v]) => h[k.toLowerCase()] = v);
@@ -54,7 +57,9 @@ if ($.isRequest()) {
     setStored("userAgent", h["user-agent"]);
     setStored("key", id);
     $.msg($.name, "TF 参数已保存", `Key: ${id.slice(0,4)}…`);
-  } else if (/\/join\/([A-Za-z0-9]+)$/.test(url)) {
+  }
+  // 抓取 join 的 App ID
+  else if (/\/join\/([A-Za-z0-9]+)$/.test(url)) {
     const m = url.match(/\/join\/([A-Za-z0-9]+)$/);
     if (m) saveAppId(m[1]);
   }
@@ -69,13 +74,18 @@ if ($.isRequest()) {
         AppleTaDevice = getStored("appleTaDevice"),
         AppleAMDM = getStored("appleAMDM"),
         AppleDeviceModel = getStored("appleDeviceModel"),
-        UserAgent = getStored("userAgent"),
-        raw = getStored("appIds") || "";
-  let APP_IDS = raw.split(",").filter(x => x);
+        UserAgent = getStored("userAgent");
 
-  if (!Key || !SessionId || !SessionDigest || !RequestId || !AppleStoreFront ||
-      !AppleTaDevice || !AppleAMDM || !AppleDeviceModel || !UserAgent || !APP_IDS.length) {
-    $.msg($.name, "参数缺失", "请先通过触发 TF 页面抓取参数和 APP_ID");
+  let APP_IDS = [];
+  const raw = getStored("appIds") || "";
+  if (raw) {
+    APP_IDS = raw.split(",").filter(x => x);
+  }
+
+  if (!Key || !SessionId || !SessionDigest || !RequestId ||
+      !AppleStoreFront || !AppleTaDevice || !AppleAMDM ||
+      !AppleDeviceModel || !UserAgent || APP_IDS.length === 0) {
+    $.msg($.name, "❌ 参数缺失", "请先访问 TF 获取参数与 APP_ID，再重试");
     $.done();
   }
 
@@ -96,7 +106,7 @@ if ($.isRequest()) {
     $.get({url: baseURL + app_id, headers}, (e, r, d) => {
       if (e || r.status !== 200) return rej(e || r.status);
       const o = $.toObj(d);
-      if (!o) return rej("解析失败");
+      if (!o || !o.data) return rej("数据解析失败");
       res(o);
     });
   });
@@ -105,31 +115,33 @@ if ($.isRequest()) {
     $.post({url: baseURL + app_id + "/accept", headers}, (e, r, d) => {
       if (e || r.status !== 200) return rej(e || r.status);
       const o = $.toObj(d);
-      if (!o) return rej("响应解析失败");
+      if (!o || !o.data) return rej("响应解析失败");
       res(o);
     });
   });
 
   (async () => {
     for (let i = 0; i < APP_IDS.length; i++) {
-      let [appId, status] = APP_IDS[i].split("#");
+      const [appId, status] = APP_IDS[i].split("#");
       if (status === "1") continue;
+
       try {
         const info = await TF_Check(appId);
-        const s = info.data?.status;
-        if (s === "OPEN") {
-          $.log(`尝试加入 ${appId}`);
+        if (info.data.status === "OPEN") {
+          $.log(`👉 ${appId} 开放中，尝试加入…`);
           const res = await TF_Join(appId);
           APP_IDS[i] = `${appId}#1`;
           setStored("appIds", APP_IDS.join(","));
-          $.msg("加入成功 🎉", res.data.name);
+          $.msg("🎉 加入成功", res.data.name);
         } else {
-          $.log(`${appId} 状态：${info.data?.message || s}`);
+          $.log(`${appId} 当前状态：${info.data.message || info.data.status}`);
         }
       } catch (err) {
-        $.log(`Error for ${appId}: ${err}`);
+        $.log(`❗ ${appId} 操作失败：${err}`);
       }
     }
     $.done();
   })();
 }
+
+// ------------- Env 类省略，与前版一致 -------------
