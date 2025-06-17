@@ -1,97 +1,60 @@
 /******************************************
- * @name TestFlight 自动抓取 + 加入（容错版）
- * @version 1.1.1
+ * @name TestFlight 自动加入（手动输入版）
+ * @version 1.2.0
  ******************************************/
 const $ = new Env("TestFlight 自动加入");
 $.isRequest = () => typeof $request !== "undefined";
 
-const STORE = {
-  key: "tf_key",
-  sessionId: "tf_session_id",
-  sessionDigest: "tf_session_digest",
-  requestId: "tf_request_id",
-  appleStoreFront: "tf_apple_store_front",
-  appleTaDevice: "tf_apple_ta_device",
-  appleAMDM: "tf_apple_amd_m",
-  appleDeviceModel: "tf_apple_device_model",
-  userAgent: "tf_user_agent",
-  appIds: "tf_app_ids",
-};
+// ⚙️ 手动填写你要加入的 TestFlight App IDs：
+const APP_IDS = [
+  "dDtSst46",
+  // "另一个AppID",
+];
 
-function getStored(k) {
-  return $.getdata(STORE[k]);
-}
-
-function setStored(k, v) {
-  return $.setdata(v, STORE[k]);
-}
-
-function saveAppId(appId) {
-  const raw = getStored("appIds") || "";
-  const arr = raw ? raw.split(",") : [];
-  const entry = `${appId}#0`;
-  if (!arr.includes(entry)) {
-    arr.push(entry);
-    setStored("appIds", arr.join(","));
-    $.msg($.name, "捕获 APP_ID ✅", appId);
-  } else {
-    $.log(`应用ID: ${appId} 已存在，无需重复添加。`);
-  }
-}
-
+// ======= 抓取参数，自动运行时不用理会 =======
 if ($.isRequest()) {
   const { url, headers } = $request;
-
-  // 抓取 TestFlight 参数
   if (/\/v3\/accounts\/.*\/apps/.test(url)) {
     const h = {};
     Object.entries(headers).forEach(([k, v]) => h[k.toLowerCase()] = v);
     const id = /\/accounts\/(.*?)\/apps/.exec(url)[1];
-    setStored("sessionId", h["x-session-id"]);
-    setStored("sessionDigest", h["x-session-digest"]);
-    setStored("requestId", h["x-request-id"]);
-    setStored("appleStoreFront", h["x-apple-store-front"]);
-    setStored("appleTaDevice", h["x-apple-ta-device"]);
-    setStored("appleAMDM", h["x-apple-amd-m"]);
-    setStored("appleDeviceModel", h["x-apple-device-model"]);
-    setStored("userAgent", h["user-agent"]);
-    setStored("key", id);
-    $.msg($.name, "TF 参数已保存", `Key: ${id.slice(0,4)}…`);
+    ["x-session-id","x-session-digest","x-request-id","x-apple-store-front",
+     "x-apple-ta-device","x-apple-amd-m","x-apple-device-model","user-agent"]
+      .forEach(k => $.setdata(h[k], k.replace(/-/g, "_")));
+    $.setdata(id, "tf_key");
+    $.msg($.name, "✅ TF 参数已保存", `Key: ${id.slice(0,4)}…`);
   }
-  // 抓取 join 的 App ID
-  else if (/\/join\/([A-Za-z0-9]+)$/.test(url)) {
+  if (/\/join\/([A-Za-z0-9]+)$/.test(url)) {
     const m = url.match(/\/join\/([A-Za-z0-9]+)$/);
-    if (m) saveAppId(m[1]);
+    m && $.msg($.name, "捕获 App ID", m[1]);
   }
   $.done();
 } else {
-  // 自动加入逻辑
-  const Key = getStored("key"),
-        SessionId = getStored("sessionId"),
-        SessionDigest = getStored("sessionDigest"),
-        RequestId = getStored("requestId"),
-        AppleStoreFront = getStored("appleStoreFront"),
-        AppleTaDevice = getStored("appleTaDevice"),
-        AppleAMDM = getStored("appleAMDM"),
-        AppleDeviceModel = getStored("appleDeviceModel"),
-        UserAgent = getStored("userAgent");
+  // ======= 正式使用逻辑 =======
+  const kv = k => $.getdata(k.replace(/-/g,"_"));
+  const Key = kv("tf_key"),
+        SessionId = kv("x-session-id"),
+        SessionDigest = kv("x-session-digest"),
+        RequestId = kv("x-request-id"),
+        AppleStoreFront = kv("x-apple-store-front"),
+        AppleTaDevice = kv("x-apple-ta-device"),
+        AppleAMDM = kv("x-apple-amd-m"),
+        AppleDeviceModel = kv("x-apple-device-model"),
+        UserAgent = kv("user-agent");
 
-  let APP_IDS = [];
-  const raw = getStored("appIds") || "";
-  if (raw) {
-    APP_IDS = raw.split(",").filter(x => x);
+  if (![Key,SessionId,SessionDigest,RequestId,AppleStoreFront,
+        AppleTaDevice,AppleAMDM,AppleDeviceModel,UserAgent].every(x=>x)) {
+    $.msg($.name, "❗ 参数缺失", "请访问 TestFlight 应用列表页以获取参数");
+    return $.done();
   }
-
-  if (!Key || !SessionId || !SessionDigest || !RequestId ||
-      !AppleStoreFront || !AppleTaDevice || !AppleAMDM ||
-      !AppleDeviceModel || !UserAgent || APP_IDS.length === 0) {
-    $.msg($.name, "❌ 参数缺失", "请先访问 TF 获取参数与 APP_ID，再重试");
-    $.done();
+  if (APP_IDS.length === 0) {
+    $.msg($.name, "❗ 没有配置 App IDs", "请在脚本顶部填写 `APP_IDS` 数组");
+    return $.done();
   }
 
   const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`;
   const headers = {
-    "content-type": "application/json",
+    "Content-Type": "application/json",
     "x-session-id": SessionId,
     "x-session-digest": SessionDigest,
     "x-request-id": RequestId,
@@ -99,42 +62,34 @@ if ($.isRequest()) {
     "x-apple-ta-device": AppleTaDevice,
     "x-apple-amd-m": AppleAMDM,
     "x-apple-device-model": AppleDeviceModel,
-    "user-agent": UserAgent,
+    "User-Agent": UserAgent,
   };
 
   const TF_Check = app_id => new Promise((res, rej) => {
-    $.get({url: baseURL + app_id, headers}, (e, r, d) => {
-      if (e || r.status !== 200) return rej(e || r.status);
+    $.get({url: baseURL + app_id, headers}, (e,r,d)=>{
+      if (e || r.status !== 200) return rej(e||r.status);
       const o = $.toObj(d);
-      if (!o || !o.data) return rej("数据解析失败");
-      res(o);
+      o && o.data ? res(o) : rej("解析失败");
     });
   });
-
   const TF_Join = app_id => new Promise((res, rej) => {
-    $.post({url: baseURL + app_id + "/accept", headers}, (e, r, d) => {
-      if (e || r.status !== 200) return rej(e || r.status);
+    $.post({url: baseURL + app_id + "/accept", headers}, (e,r,d)=>{
+      if (e || r.status !== 200) return rej(e||r.status);
       const o = $.toObj(d);
-      if (!o || !o.data) return rej("响应解析失败");
-      res(o);
+      o && o.data ? res(o) : rej("响应解析失败");
     });
   });
 
   (async () => {
-    for (let i = 0; i < APP_IDS.length; i++) {
-      const [appId, status] = APP_IDS[i].split("#");
-      if (status === "1") continue;
-
+    for (const appId of APP_IDS) {
       try {
         const info = await TF_Check(appId);
         if (info.data.status === "OPEN") {
           $.log(`👉 ${appId} 开放中，尝试加入…`);
           const res = await TF_Join(appId);
-          APP_IDS[i] = `${appId}#1`;
-          setStored("appIds", APP_IDS.join(","));
-          $.msg("🎉 加入成功", res.data.name);
+          $.msg("🎉 加入成功", `${res.data.name}`);
         } else {
-          $.log(`${appId} 当前状态：${info.data.message || info.data.status}`);
+          $.log(`${appId} 状态：${info.data.message || info.data.status}`);
         }
       } catch (err) {
         $.log(`❗ ${appId} 操作失败：${err}`);
@@ -144,4 +99,4 @@ if ($.isRequest()) {
   })();
 }
 
-// ------------- Env 类省略，与前版一致 -------------
+// ==== Env 类请使用你设备上当前版本 ====
