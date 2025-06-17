@@ -160,39 +160,7 @@ const getParams = () => {
         handler(appId);
     }
 };
-// 检查TF应用
-const TF_Check = (app_id) => {
-    return new Promise((resolve, reject) => {
-        $.get(
-            {
-                url: baseURL + app_id,
-                headers: Object.keys(headers).reduce((e, t) => {
-                    const r = t
-                        .split("-")
-                        .map((e) => e[0].toUpperCase() + e.slice(1))
-                        .join("-");
-                    e[r] = headers[t];
-                    return e;
-                }, {}),
-            },
-            (error, response, data) => {
-                if (error) {
-                    return reject(`${app_id} 网络请求失败: ${error}`);
-                }
-                if (response.status !== 200) {
-                    return reject(
-                        `${app_id} 不是有效链接: 状态码 ${response.status}，移除 APP_ID`
-                    );
-                }
-                const appData = $.toObj(data);
-                if (!appData) {
-                    return reject(`${app_id} 数据解析失败: ${data}`);
-                }
-                resolve(appData);
-            }
-        );
-    });
-};
+
 // 加入TF应用
 const TF_Join = (app_id) => {
     return new Promise((resolve, reject) => {
