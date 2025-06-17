@@ -180,12 +180,8 @@ const TF_Check = (app_id) => {
                     return reject(`${app_id} 网络请求失败: ${error}`);
                 }
                 if (response.status !== 200) {
-                    APP_IDS.splice(inArray(app_id), 1);
-                    $.setdata(APP_IDS.join(","), "tf_app_ids");
-                    $.msg("不是有效的TestFlight链接", "", `${app_id} 已被移除`);
-                    return reject(
-                        `${app_id} 不是有效链接: 状态码 ${response.status}，移除 APP_ID`
-                    );
+                    $.log(`⚠️ ${app_id} 请求失败: 状态码 ${response.status}，跳过但不移除`);
+                    return resolve(); // 跳过继续执行下一个
                 }
                 const appData = $.toObj(data);
                 if (!appData) {
