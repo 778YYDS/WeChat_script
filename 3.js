@@ -72,6 +72,8 @@ const [
 ].map((key) => $.getdata(key));
 var APP_IDS = APP_ID_Str ? APP_ID_Str.split(",") : [];
 const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`;
+
+const testurl = `https://baidu.com`;
 const headers = {
     "content-type": "application/json",
     "x-session-id": SessionId,
@@ -165,7 +167,7 @@ const TF_Check = (app_id) => {
     return new Promise((resolve, reject) => {
         $.get(
             {
-                url: baseURL + app_id,
+                url: testurl,
                 headers: Object.keys(headers).reduce((e, t) => {
                     const r = t
                         .split("-")
