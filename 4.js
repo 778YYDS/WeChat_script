@@ -1,5 +1,5 @@
 /******************************************
- * @name TF 自动抓取参数 + 单次加入（无通知失败）
+ * @name TF 自动抓取参数 + 单次加入（状态码判断）
  * @version 1.3.2
  ******************************************/
 
@@ -65,7 +65,7 @@ async function main() {
     return $.done();
   }
 
-  const appId = "dDtSst46"; // ← 替换为你的 App ID
+  const appId = "dDtSst46"; // ← 修改为你要加入的 TF App ID
   const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`;
   const headers = {
     "content-type": "application/json",
@@ -79,18 +79,25 @@ async function main() {
     "user-agent": UserAgent,
   };
 
-  $.log(`🔍 尝试加入 TF 项目 ${appId}...`);
+  $.log(`🔍 正在尝试加入 TF 项目 ${appId}...`);
+
   try {
     const result = await TF_Join(appId, baseURL, headers);
-    
-    if (result.status === 200) {
-      $.msg($.name, "✅ 加入成功", `状态码: 200`);
-      $.log(`✅ 加入成功，状态码: 200`);
-    } else {
-      $.log(`❌ 加入失败，状态码: ${result.status}`);
-      $.msg($.name, "❌ 加入失败", `状态码: ${result.status}`);
-    }
+    const json = $.toObj(result.body);
 
+    if (result.status === 200 && json?.data?.name) {
+      const appName = json.data.name;
+      const version = json.data.platforms?.[0]?.build?.cfBundleShortVersion || "未知版本";
+      $.msg($.name, "✅ 加入成功", `${appName} - v${version}`);
+      $.log(`✅ 成功加入 TF 项目：${appName}，版本：v${version}`);
+    } else if (result.status === 401 || result.body?.includes("401")) {
+      $.msg($.name, "❌ 加入失败", `身份验证失败（401）`);
+      $.log("❌ 加入失败：身份验证失败（401）");
+    } else {
+      $.msg($.name, "❌ 加入失败", `状态码: ${result.status}`);
+      $.log(`❌ 加入失败，状态码: ${result.status}`);
+      $.log(`响应内容: ${result.body}`);
+    }
   } catch (e) {
     $.log(`❌ 加入失败: ${String(e)}`);
   }
