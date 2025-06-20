@@ -1,6 +1,6 @@
 /******************************************
  * @name TF 自动抓取参数 + 单次加入（无通知失败）
- * @version 1.3.1
+ * @version 1.3.2
  ******************************************/
 
 const $ = new Env("TestFlight自动加入");
@@ -82,14 +82,15 @@ async function main() {
   $.log(`🔍 尝试加入 TF 项目 ${appId}...`);
   try {
     const result = await TF_Join(appId, baseURL, headers);
-    if (result.status === 401 || result.body?.includes("401")) {
-      $.log("❌ 加入失败：身份验证失败（401）");
+    
+    if (result.status === 200) {
+      $.msg($.name, "✅ 加入成功", `状态码: 200`);
+      $.log(`✅ 加入成功，状态码: 200`);
     } else {
-      const json = $.toObj(result.body);
-      const status = json?.data?.status || "未知";
-      $.msg($.name, "✅ 加入成功", `状态: ${status}`);
-      $.log(`✅ 加入成功，状态: ${status}`);
+      $.log(`❌ 加入失败，状态码: ${result.status}`);
+      $.msg($.name, "❌ 加入失败", `状态码: ${result.status}`);
     }
+
   } catch (e) {
     $.log(`❌ 加入失败: ${String(e)}`);
   }
