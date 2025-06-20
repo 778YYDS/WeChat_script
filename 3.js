@@ -179,7 +179,7 @@ const TF_Check = (app_id) => {
                 if (error) {
                     return reject(`${app_id} 网络请求失败: ${error}`);
                 }
-                if (response.status !== 401) {
+                if (response.status !== 200) {
                     APP_IDS.splice(inArray(app_id), 1);
                     $.setdata(APP_IDS.join(","), "tf_app_ids");
                     $.msg("不是有效的TestFlight链接", "", `${app_id} 已被移除`);
