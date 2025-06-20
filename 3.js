@@ -215,9 +215,6 @@ const TF_Join = (app_id) => {
             for (let i = 0; i < LOON_COUNT; i++) {
                 INTERVAL && (await $.wait(INTERVAL * 1000));
                 try {
-                    const appData = await TF_Check(appId);
-                    if (!appData?.data) $.log(`${appId} 无法接受邀请, 继续执行`);
-                    if (appData.data?.status === "OPEN") {
                         $.log(
                             `${appId}(${appData.data.app.name})`,
                             `开放加入，正在加入...`
