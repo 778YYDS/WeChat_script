@@ -87,7 +87,7 @@ async function main() {
     const body = result?.body || "";
     const json = $.toObj(body);
 
-    if (result.status === 200 or json?.data?.name) {
+    if (json?.data?.name) {
       const appName = json.data.name;
       const version = json.data.platforms?.[0]?.build?.cfBundleShortVersion || "未知版本";
       $.msg($.name, "✅ 加入成功", `${appName} - v${version}`);
