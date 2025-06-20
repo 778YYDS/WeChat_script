@@ -1,6 +1,6 @@
 /******************************************
- * @name TF 自动抓取参数 + 单次加入
- * @version 1.3.0
+ * @name TF 自动抓取参数 + 单次加入（无通知失败）
+ * @version 1.3.1
  ******************************************/
 
 const $ = new Env("TestFlight自动加入");
@@ -14,7 +14,6 @@ if ($.isRequest()) {
   main();
 }
 
-// 抓参数逻辑
 function getParams() {
   const { url, headers: header } = $request;
   if (/^https:\/\/testflight\.apple\.com\/v3\/accounts\/.*\/apps$/.test(url)) {
@@ -49,7 +48,6 @@ function getParams() {
   }
 }
 
-// 单次加入 TF 应用
 async function main() {
   const Key = $.getdata("tf_key");
   const SessionId = $.getdata("tf_session_id");
@@ -85,20 +83,20 @@ async function main() {
   try {
     const result = await TF_Join(appId, baseURL, headers);
     if (result.status === 401 || result.body?.includes("401")) {
-      $.msg($.name, "❌ 加入失败", "身份验证失败（401）");
+      $.log("❌ 加入失败：身份验证失败（401）");
     } else {
       const json = $.toObj(result.body);
       const status = json?.data?.status || "未知";
       $.msg($.name, "✅ 加入成功", `状态: ${status}`);
+      $.log(`✅ 加入成功，状态: ${status}`);
     }
   } catch (e) {
-    $.msg($.name, "❌ 加入失败", String(e));
+    $.log(`❌ 加入失败: ${String(e)}`);
   }
 
   $.done();
 }
 
-// 加入请求
 function TF_Join(app_id, baseURL, headers) {
   return new Promise((resolve, reject) => {
     $.post(
@@ -117,7 +115,6 @@ function TF_Join(app_id, baseURL, headers) {
   });
 }
 
-// 通用环境适配类
 function Env(name) {
   this.name = name;
   this.getdata = (key) =>
