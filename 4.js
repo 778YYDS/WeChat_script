@@ -68,7 +68,6 @@ async function main() {
 
     const appId = "dDtSst46"; // ← 修改为你要加入的 TF App ID
     const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`;
-    const testURL = `https://testflight.apple.com/v1/session/authenticate`;
     const headers = {
       "content-type": "application/json",
       "x-session-id": SessionId,
@@ -84,7 +83,6 @@ async function main() {
     $.log(`🔍 正在尝试加入 TF 项目 ${appId}...`);
 
     const result = await TF_Join(appId, baseURL, headers);
-    const testresult = await TF_test(testURL, headers);
 
     const body = result?.body || "";
     const json = $.toObj(body);
@@ -115,24 +113,6 @@ function TF_Join(app_id, baseURL, headers) {
     $.post(
       {
         url: baseURL + app_id + "/accept",
-        headers,
-      },
-      (error, response, data) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve({ status: response?.status || response?.statusCode || "undefined", body: data });
-        }
-      }
-    );
-  });
-}
-
-function TF_test(testURL, headers) {
-  return new Promise((resolve, reject) => {
-    $.post(
-      {
-        url: testURL,
         headers,
       },
       (error, response, data) => {
