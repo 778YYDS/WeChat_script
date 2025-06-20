@@ -65,7 +65,7 @@ async function main() {
     return $.done();
   }
 
-  const appId = "dDtSst46"; // ← 替换为你的 App ID
+  const appId = "SXJHaQYF"; // ← 替换为你的 App ID
   const baseURL = `https://testflight.apple.com/v3/accounts/${Key}/ru/`;
   const headers = {
     "content-type": "application/json",
